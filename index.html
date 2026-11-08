@@ -16,8 +16,7 @@ button{background:transparent;color:var(--text);border:1px solid var(--border);b
 .stack{display:flex;height:20px;overflow:hidden;border-radius:5px;background:#344252}.legend{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px;font-size:12px}
 .seat{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border)}.seat:last-child{border:0}
 .switch{width:42px;height:24px;position:relative;flex-shrink:0}.switch input{opacity:0;width:0;height:0}.track{position:absolute;inset:0;border-radius:20px;background:#526171;cursor:pointer}.track:before{content:"";position:absolute;width:18px;height:18px;border-radius:50%;left:3px;top:3px;background:#fff;transition:.2s}.switch input:checked+.track{background:#6ca8ff}.switch input:checked+.track:before{transform:translateX(18px)}
-input[type=range]{width:100%;accent-color:var(--accent)}.twocol{display:grid;grid-template-columns:1fr 1fr;gap:12px}.stat{background:#111a25;border-radius:9px;padding:12px}.stat strong{display:block;font-size:22px;margin-top:4px}.details{display:flex;justify-content:space-between;padding:5px 0;font-size:14px}.party{margin-top:12px}.partyhead{display:flex;justify-content:space-between;gap:10px;padding:0 0 6px;color:#eaf1fa}.bar{position:relative}.bar .fill{display:block;height:10px;border-radius:999px}.partyline{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:12px}.partyline strong{color:var(--text)}
-.toggle-row{display:flex;align-items:center;gap:8px;color:var(--muted);margin-bottom:8px;font-size:12px}.toggle-row input{accent-color:var(--accent)}
+input[type=range]{width:100%;accent-color:var(--accent)}.twocol{display:grid;grid-template-columns:1fr 1fr;gap:12px}.stat{background:#111a25;border-radius:9px;padding:12px}.stat strong{display:block;font-size:22px;margin-top:4px}.details{display:flex;justify-content:space-between;padding:5px 0;font-size:14px}.party{margin-top:12px}.partyhead{display:flex;justify-content:space-between;gap:10px;padding:0 0 6px;color:#eaf1fa}.bar{position:relative}.bar .fill{display:block;height:10px;border-radius:999px}.partyline{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:12px}.toggle-row{display:flex;align-items:center;gap:8px;color:var(--muted);margin-bottom:8px;font-size:12px}.toggle-row input{accent-color:var(--accent)}
 @media(max-width:520px){main{padding:18px 12px 35px}.metrics .metric{font-size:25px}.legend{grid-template-columns:1fr 1fr}.twocol{grid-template-columns:1fr 1fr}}
 </style>
 </head>
@@ -42,7 +41,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}.twocol{display:grid;gri
   <div class="details"><span>Labour seats</span><b id="labseats">—</b></div><div class="details"><span>National seats</span><b id="natseats">—</b></div>
 
   <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px;">
-    <div class="top" style="margin-bottom:10px"><span class="muted">Optional additional swings to Labour</span></div>
+    <div class="top" style="margin-bottom:10px"><span class="muted">Optional additional party-vote swings</span></div>
     <div class="twocol">
       <div class="stat">
         <label class="toggle-row" for="actToggle"><input id="actToggle" type="checkbox"> Include ACT → Labour swing</label>
@@ -57,9 +56,23 @@ input[type=range]{width:100%;accent-color:var(--accent)}.twocol{display:grid;gri
         <div class="partyline" style="margin-top:8px"><span>NZ First party vote</span><strong id="nzfvote">—</strong></div>
       </div>
     </div>
+    <div class="twocol" style="margin-top:12px">
+      <div class="stat">
+        <label class="toggle-row" for="natGreensToggle"><input id="natGreensToggle" type="checkbox"> Include National → Greens swing</label>
+        <div class="top" style="margin-top:8px"><label for="natGreensSwing">National → Greens</label><b id="natGreensSwingLabel">0.0 pp</b></div>
+        <input id="natGreensSwing" type="range" min="-5" max="8" value="0" step=".1" disabled>
+        <div class="partyline" style="margin-top:8px"><span>Greens party vote</span><strong id="greensvote">—</strong></div>
+      </div>
+      <div class="stat" style="visibility:hidden">
+        <label class="toggle-row" for="placeholderToggle"><input id="placeholderToggle" type="checkbox"> Placeholder</label>
+        <div class="top" style="margin-top:8px"><label for="placeholderSwing">Placeholder</label><b id="placeholderSwingLabel">0.0 pp</b></div>
+        <input id="placeholderSwing" type="range" min="-5" max="8" value="0" step=".1" disabled>
+        <div class="partyline" style="margin-top:8px"><span>Placeholder</span><strong id="placeholdervote">—</strong></div>
+      </div>
+    </div>
   </div>
 
-  <p class="muted" style="margin-top:12px">Each enabled slider transfers votes from its named party to Labour. A negative value reverses that transfer. All other party votes remain constant.</p>
+  <p class="muted" style="margin-top:12px">Each enabled slider transfers votes from its named party to its named recipient. A negative value reverses that transfer. All other party votes remain constant.</p>
 </section>
 <section class="panel">
   <h2>3. Parliament size and overhang</h2>
@@ -68,7 +81,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}.twocol{display:grid;gri
   <p class="muted">Overhang is calculated when a party wins more electorate seats than its party-vote entitlement. Those additional electorate seats increase the size of Parliament.</p>
 </section>
 <section class="panel">
-  <h2>4. Party allocation</h2><p class="muted">Sainte-Laguë party-vote entitlement, protected electorate seats, list seats and overhang.</p><div id="parties"></div><div class="top" style="border-top:1px solid var(--border);margin-top:14px;padding-top:12px"><span class="muted">Seat total</span><b id="sum">—</b></div><div class="muted" style="margin-top:8px" id="method">—</div>
+  <h2>4. Party allocation</h2><p class="muted">Sainte-Laguë party-vote entitlement, protected electorate seats, list seats and overhang.</p><div id="parties"></div><div class="top" style="border-top:1px solid var(--border);margin-top:14px;padding-top:12px"><span class="muted">Seat total</span><b id="sum">—</b></div><div class="muted" id="method">—</div>
 </section>
 <section class="panel"><h2>Data and limitations</h2><p class="muted">This standalone file embeds the baseline figures and electorate shortlist from the previous chat model. They have not been independently verified against official election data.</p></section>
 </main>
@@ -106,10 +119,13 @@ const $=id=>document.getElementById(id),flips=new Set();
 function syncOptionalControls(){
   const actEnabled=$('actToggle').checked;
   const nzfEnabled=$('nzfToggle').checked;
+  const natGreensEnabled=$('natGreensToggle').checked;
   $('actSwing').disabled=!actEnabled;
   $('nzfSwing').disabled=!nzfEnabled;
-  $('actSwingLabel').textContent=(+ $('actSwing').value>0?'+':'') + (+$('actSwing').value).toFixed(1)+' pp';
-  $('nzfSwingLabel').textContent=(+ $('nzfSwing').value>0?'+':'') + (+$('nzfSwing').value).toFixed(1)+' pp';
+  $('natGreensSwing').disabled=!natGreensEnabled;
+  $('actSwingLabel').textContent=(+$('actSwing').value>0?'+':'') + (+$('actSwing').value).toFixed(1)+' pp';
+  $('nzfSwingLabel').textContent=(+$('nzfSwing').value>0?'+':'') + (+$('nzfSwing').value).toFixed(1)+' pp';
+  $('natGreensSwingLabel').textContent=(+$('natGreensSwing').value>0?'+':'') + (+$('natGreensSwing').value).toFixed(1)+' pp';
 }
 
 function renderSeats(){
@@ -120,15 +136,18 @@ function calculate(){
   const swing=+$('swing').value;
   const actSwing=$('actToggle').checked ? +$('actSwing').value : 0;
   const nzfSwing=$('nzfToggle').checked ? +$('nzfSwing').value : 0;
+  const natGreensSwing=$('natGreensToggle').checked ? +$('natGreensSwing').value : 0;
   const p=Object.fromEntries(parties.map(x=>[x.id,{...x,votes:x.votes,e:x.e,entitlement:0,list:0,over:0,total:0}]));
 
   const nationalToLabour=swing*totalVotes/100;
   const actToLabour=actSwing*totalVotes/100;
   const nzfToLabour=nzfSwing*totalVotes/100;
+  const nationalToGreens=natGreensSwing*totalVotes/100;
 
-  p.National.votes-=nationalToLabour;
+  p.National.votes-=nationalToLabour+nationalToGreens;
   p.ACT.votes-=actToLabour;
   p['NZ First'].votes-=nzfToLabour;
+  p.Greens.votes+=nationalToGreens;
   p.Labour.votes+=nationalToLabour+actToLabour+nzfToLabour;
 
   races.forEach((r,i)=>{if(flips.has(i)){const winnerId=partyIdLookup[r.w]||r.w;const runnerUpId=partyIdLookup[r.r]||r.r;p[winnerId].e--;p[runnerUpId].e++;}});
@@ -141,7 +160,7 @@ function calculate(){
   $('left').textContent=left;$('right').textContent=right;$('majority').textContent=majority;$('total').textContent=size+' seats';
   $('flipCount').textContent=flips.size+' changed';$('swingLabel').textContent=(swing>0?'+':'')+swing.toFixed(1)+' pp';
   $('labvote').textContent=(p.Labour.votes/totalVotes*100).toFixed(2)+'%';$('natvote').textContent=(p.National.votes/totalVotes*100).toFixed(2)+'%';
-  $('actvote').textContent=(p.ACT.votes/totalVotes*100).toFixed(2)+'%';$('nzfvote').textContent=(p['NZ First'].votes/totalVotes*100).toFixed(2)+'%';
+  $('actvote').textContent=(p.ACT.votes/totalVotes*100).toFixed(2)+'%';$('nzfvote').textContent=(p['NZ First'].votes/totalVotes*100).toFixed(2)+'%';$('greensvote').textContent=(p.Greens.votes/totalVotes*100).toFixed(2)+'%';
   $('labseats').textContent=p.Labour.total;$('natseats').textContent=p.National.total;
   $('overhang').textContent=over;$('houseSize').textContent=size;$('threshold').textContent=majority;$('sum').textContent=sum;
   let title='No bloc has a majority',detail=`Left ${left} · Right ${right} · TOP ${p.TOP.total}.`;
@@ -159,11 +178,13 @@ $('seatlist').addEventListener('change',e=>{if(!e.target.matches('[data-race]'))
 $('swing').addEventListener('input',calculate);
 $('actSwing').addEventListener('input',()=>{syncOptionalControls();calculate();});
 $('nzfSwing').addEventListener('input',()=>{syncOptionalControls();calculate();});
+$('natGreensSwing').addEventListener('input',()=>{syncOptionalControls();calculate();});
 $('actToggle').addEventListener('change',()=>{syncOptionalControls();calculate();});
 $('nzfToggle').addEventListener('change',()=>{syncOptionalControls();calculate();});
+$('natGreensToggle').addEventListener('change',()=>{syncOptionalControls();calculate();});
 $('all').onclick=()=>{races.forEach((r,i)=>flips.add(i));renderSeats();calculate();};
 $('none').onclick=()=>{flips.clear();renderSeats();calculate();};
-$('reset').onclick=()=>{flips.clear();$('swing').value=0;$('actToggle').checked=false;$('nzfToggle').checked=false;$('actSwing').value=0;$('nzfSwing').value=0;syncOptionalControls();renderSeats();calculate();};
+$('reset').onclick=()=>{flips.clear();$('swing').value=0;$('actToggle').checked=false;$('nzfToggle').checked=false;$('natGreensToggle').checked=false;$('actSwing').value=0;$('nzfSwing').value=0;$('natGreensSwing').value=0;syncOptionalControls();renderSeats();calculate();};
 
 syncOptionalControls();
 renderSeats();
