@@ -79,7 +79,7 @@ const races=[
   {n:'Auckland Central',w:'Greens',r:'National',wn:'Chlöe Swarbrick',rn:'Candace Kinser',m:2831},
   {n:'Maungakiekie',w:'National',r:'Labour',wn:'Greg Fleming',rn:'Priyanca Radhakrishnan',m:2952},
   {n:'Te Tai Tokerau',w:'Te Pāti Māori',r:'Greens',wn:'Aperahama Edwards',rn:'Hūhana Lyndon',m:436}
-];
+].sort((a,b)=>a.m-b.m);
 const partyIdLookup={"Te Pāti Māori":'TPM'};
 const $=id=>document.getElementById(id),flips=new Set();
 function renderSeats(){
@@ -90,7 +90,7 @@ function calculate(){
   const shift=swing*totalVotes/100;p.National.votes-=shift;p.Labour.votes+=shift;
   races.forEach((r,i)=>{if(flips.has(i)){const winnerId=partyIdLookup[r.w]||r.w;const runnerUpId=partyIdLookup[r.r]||r.r;p[winnerId].e--;p[runnerUpId].e++;}});
   const eligible=parties.filter(x=>p[x.id].votes>=totalVotes*.05||p[x.id].e>0),allocated=Object.fromEntries(eligible.map(x=>[x.id,0]));
-  for(let seat=0;seat<120;seat++){let best=-1,winner;for(const x of eligible){const score=p[x.id].votes/(2*allocated[x.id]+1);if(score>best){best=score;winner=x.id;}}allocated[winner]++;;}
+  for(let seat=0;seat<120;seat++){let best=-1,winner;for(const x of eligible){const score=p[x.id].votes/(2*allocated[x.id]+1);if(score>best){best=score;winner=x.id;}}allocated[winner]++;}
   eligible.forEach(x=>{const q=p[x.id];q.entitlement=allocated[x.id];q.total=Math.max(q.e,q.entitlement);q.list=Math.max(0,q.entitlement-q.e);q.over=Math.max(0,q.e-q.entitlement);});
   const over=Object.values(p).reduce((a,q)=>a+q.over,0),size=120+over,majority=Math.floor(size/2)+1,sum=Object.values(p).reduce((a,q)=>a+q.total,0);
   const left=p.Labour.total+p.Greens.total+p.TPM.total,right=p.National.total+p.ACT.total+p['NZ First'].total;
