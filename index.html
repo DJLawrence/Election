@@ -35,31 +35,31 @@ input[type=range]{width:100%;accent-color:var(--accent)}.twocol{display:grid;gri
   <div class="top"><b id="flipCount">0 changed</b></div><div class="actions"><button id="all">Flip all</button><button id="none">Clear all</button></div><div id="seatlist"></div>
 </section>
 <section class="panel">
-  <h2>2. Party-vote swing</h2><p class="muted">Transfer party-vote support directly from National to Labour. Optional additional swings can also shift support to ACT and NZ First while preserving total votes.</p>
+  <h2>2. Party-vote swing</h2><p class="muted">Model vote transfers to Labour from National, and optionally from ACT and NZ First. All transfers preserve total votes.</p>
   <div class="top" style="margin-top:15px"><label for="swing">National → Labour</label><b id="swingLabel">0.0 pp</b></div><input id="swing" type="range" min="-5" max="8" value="0" step=".1">
   <div class="top muted"><span>5 pp to National</span><span>8 pp to Labour</span></div>
   <div class="twocol" style="margin-top:14px"><div class="stat"><span class="muted">Labour party vote</span><strong id="labvote">—</strong></div><div class="stat"><span class="muted">National party vote</span><strong id="natvote">—</strong></div></div>
   <div class="details"><span>Labour seats</span><b id="labseats">—</b></div><div class="details"><span>National seats</span><b id="natseats">—</b></div>
 
   <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px;">
-    <div class="top" style="margin-bottom:10px"><span class="muted">Optional additional swings</span></div>
+    <div class="top" style="margin-bottom:10px"><span class="muted">Optional additional swings to Labour</span></div>
     <div class="twocol">
       <div class="stat">
-        <label class="toggle-row" for="actToggle"><input id="actToggle" type="checkbox"> Include ACT swing</label>
-        <div class="top" style="margin-top:8px"><label for="actSwing">National → ACT</label><b id="actSwingLabel">0.0 pp</b></div>
+        <label class="toggle-row" for="actToggle"><input id="actToggle" type="checkbox"> Include ACT → Labour swing</label>
+        <div class="top" style="margin-top:8px"><label for="actSwing">ACT → Labour</label><b id="actSwingLabel">0.0 pp</b></div>
         <input id="actSwing" type="range" min="-5" max="8" value="0" step=".1" disabled>
-        <div class="partyline" style="margin-top:8px"><span>ACT vote</span><strong id="actvote">—</strong></div>
+        <div class="partyline" style="margin-top:8px"><span>ACT party vote</span><strong id="actvote">—</strong></div>
       </div>
       <div class="stat">
-        <label class="toggle-row" for="nzfToggle"><input id="nzfToggle" type="checkbox"> Include NZ First swing</label>
-        <div class="top" style="margin-top:8px"><label for="nzfSwing">National → NZ First</label><b id="nzfSwingLabel">0.0 pp</b></div>
+        <label class="toggle-row" for="nzfToggle"><input id="nzfToggle" type="checkbox"> Include NZ First → Labour swing</label>
+        <div class="top" style="margin-top:8px"><label for="nzfSwing">NZ First → Labour</label><b id="nzfSwingLabel">0.0 pp</b></div>
         <input id="nzfSwing" type="range" min="-5" max="8" value="0" step=".1" disabled>
-        <div class="partyline" style="margin-top:8px"><span>NZ First vote</span><strong id="nzfvote">—</strong></div>
+        <div class="partyline" style="margin-top:8px"><span>NZ First party vote</span><strong id="nzfvote">—</strong></div>
       </div>
     </div>
   </div>
 
-  <p class="muted" style="margin-top:12px">The swing is a direct transfer between these parties; all other party votes remain constant.</p>
+  <p class="muted" style="margin-top:12px">Each enabled slider transfers votes from its named party to Labour. A negative value reverses that transfer. All other party votes remain constant.</p>
 </section>
 <section class="panel">
   <h2>3. Parliament size and overhang</h2>
@@ -117,19 +117,19 @@ function renderSeats(){
 }
 
 function calculate(){
-  const swing=+ $('swing').value;
+  const swing=+$('swing').value;
   const actSwing=$('actToggle').checked ? +$('actSwing').value : 0;
   const nzfSwing=$('nzfToggle').checked ? +$('nzfSwing').value : 0;
   const p=Object.fromEntries(parties.map(x=>[x.id,{...x,votes:x.votes,e:x.e,entitlement:0,list:0,over:0,total:0}]));
 
-  const labourShift=swing*totalVotes/100;
-  const actShift=actSwing*totalVotes/100;
-  const nzfShift=nzfSwing*totalVotes/100;
+  const nationalToLabour=swing*totalVotes/100;
+  const actToLabour=actSwing*totalVotes/100;
+  const nzfToLabour=nzfSwing*totalVotes/100;
 
-  p.National.votes-=labourShift+actShift+nzfShift;
-  p.Labour.votes+=labourShift;
-  p.ACT.votes+=actShift;
-  p['NZ First'].votes+=nzfShift;
+  p.National.votes-=nationalToLabour;
+  p.ACT.votes-=actToLabour;
+  p['NZ First'].votes-=nzfToLabour;
+  p.Labour.votes+=nationalToLabour+actToLabour+nzfToLabour;
 
   races.forEach((r,i)=>{if(flips.has(i)){const winnerId=partyIdLookup[r.w]||r.w;const runnerUpId=partyIdLookup[r.r]||r.r;p[winnerId].e--;p[runnerUpId].e++;}});
 
