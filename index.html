@@ -17,6 +17,7 @@ button{background:transparent;color:var(--text);border:1px solid var(--border);b
 .seat{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border)}.seat:last-child{border:0}
 .switch{width:42px;height:24px;position:relative;flex-shrink:0}.switch input{opacity:0;width:0;height:0}.track{position:absolute;inset:0;border-radius:20px;background:#526171;cursor:pointer}.track:before{content:"";position:absolute;width:18px;height:18px;border-radius:50%;left:3px;top:3px;background:#fff;transition:.2s}.switch input:checked+.track{background:#6ca8ff}.switch input:checked+.track:before{transform:translateX(18px)}
 input[type=range]{width:100%;accent-color:var(--accent)}.twocol{display:grid;grid-template-columns:1fr 1fr;gap:12px}.stat{background:#111a25;border-radius:9px;padding:12px}.stat strong{display:block;font-size:22px;margin-top:4px}.details{display:flex;justify-content:space-between;padding:5px 0;font-size:14px}.party{margin-top:12px}.partyhead{display:flex;justify-content:space-between;gap:10px;padding:0 0 6px;color:#eaf1fa}.bar{position:relative}.bar .fill{display:block;height:10px;border-radius:999px}.partyline{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:12px}.partyline strong{color:var(--text)}
+.toggle-row{display:flex;align-items:center;gap:8px;color:var(--muted);margin-bottom:8px;font-size:12px}.toggle-row input{accent-color:var(--accent)}
 @media(max-width:520px){main{padding:18px 12px 35px}.metrics .metric{font-size:25px}.legend{grid-template-columns:1fr 1fr}.twocol{grid-template-columns:1fr 1fr}}
 </style>
 </head>
@@ -34,12 +35,31 @@ input[type=range]{width:100%;accent-color:var(--accent)}.twocol{display:grid;gri
   <div class="top"><b id="flipCount">0 changed</b></div><div class="actions"><button id="all">Flip all</button><button id="none">Clear all</button></div><div id="seatlist"></div>
 </section>
 <section class="panel">
-  <h2>2. Party-vote swing</h2><p class="muted">Transfer party-vote support directly from National to Labour. List seats are recalculated using the Sainte-Laguë method.</p>
+  <h2>2. Party-vote swing</h2><p class="muted">Transfer party-vote support directly from National to Labour. Optional additional swings can also shift support to ACT and NZ First while preserving total votes.</p>
   <div class="top" style="margin-top:15px"><label for="swing">National → Labour</label><b id="swingLabel">0.0 pp</b></div><input id="swing" type="range" min="-5" max="8" value="0" step=".1">
   <div class="top muted"><span>5 pp to National</span><span>8 pp to Labour</span></div>
   <div class="twocol" style="margin-top:14px"><div class="stat"><span class="muted">Labour party vote</span><strong id="labvote">—</strong></div><div class="stat"><span class="muted">National party vote</span><strong id="natvote">—</strong></div></div>
   <div class="details"><span>Labour seats</span><b id="labseats">—</b></div><div class="details"><span>National seats</span><b id="natseats">—</b></div>
-  <p class="muted">The swing is a direct transfer between these two parties; all other party votes remain constant.</p>
+
+  <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px;">
+    <div class="top" style="margin-bottom:10px"><span class="muted">Optional additional swings</span></div>
+    <div class="twocol">
+      <div class="stat">
+        <label class="toggle-row" for="actToggle"><input id="actToggle" type="checkbox"> Include ACT swing</label>
+        <div class="top" style="margin-top:8px"><label for="actSwing">National → ACT</label><b id="actSwingLabel">0.0 pp</b></div>
+        <input id="actSwing" type="range" min="-5" max="8" value="0" step=".1" disabled>
+        <div class="partyline" style="margin-top:8px"><span>ACT vote</span><strong id="actvote">—</strong></div>
+      </div>
+      <div class="stat">
+        <label class="toggle-row" for="nzfToggle"><input id="nzfToggle" type="checkbox"> Include NZ First swing</label>
+        <div class="top" style="margin-top:8px"><label for="nzfSwing">National → NZ First</label><b id="nzfSwingLabel">0.0 pp</b></div>
+        <input id="nzfSwing" type="range" min="-5" max="8" value="0" step=".1" disabled>
+        <div class="partyline" style="margin-top:8px"><span>NZ First vote</span><strong id="nzfvote">—</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="muted" style="margin-top:12px">The swing is a direct transfer between these parties; all other party votes remain constant.</p>
 </section>
 <section class="panel">
   <h2>3. Parliament size and overhang</h2>
@@ -82,13 +102,37 @@ const races=[
 ].sort((a,b)=>a.m-b.m);
 const partyIdLookup={"Te Pāti Māori":'TPM'};
 const $=id=>document.getElementById(id),flips=new Set();
+
+function syncOptionalControls(){
+  const actEnabled=$('actToggle').checked;
+  const nzfEnabled=$('nzfToggle').checked;
+  $('actSwing').disabled=!actEnabled;
+  $('nzfSwing').disabled=!nzfEnabled;
+  $('actSwingLabel').textContent=(+ $('actSwing').value>0?'+':'') + (+$('actSwing').value).toFixed(1)+' pp';
+  $('nzfSwingLabel').textContent=(+ $('nzfSwing').value>0?'+':'') + (+$('nzfSwing').value).toFixed(1)+' pp';
+}
+
 function renderSeats(){
   $('seatlist').innerHTML=races.map((r,i)=>`<div class="seat"><div><b>${r.n}</b><div class="muted">${r.wn} (${r.w})${flips.has(i)?' → ': ' vs '}${r.rn} (${r.r}) · margin ${r.m.toLocaleString('en-NZ')}</div></div><label class="switch"><input type="checkbox" data-race="${i}" ${flips.has(i)?'checked':''}><span class="track"></span></label></div>`).join('');
 }
+
 function calculate(){
-  const swing=+ $('swing').value,p=Object.fromEntries(parties.map(x=>[x.id,{...x,votes:x.votes,e:x.e,entitlement:0,list:0,over:0,total:0}]));
-  const shift=swing*totalVotes/100;p.National.votes-=shift;p.Labour.votes+=shift;
+  const swing=+ $('swing').value;
+  const actSwing=$('actToggle').checked ? +$('actSwing').value : 0;
+  const nzfSwing=$('nzfToggle').checked ? +$('nzfSwing').value : 0;
+  const p=Object.fromEntries(parties.map(x=>[x.id,{...x,votes:x.votes,e:x.e,entitlement:0,list:0,over:0,total:0}]));
+
+  const labourShift=swing*totalVotes/100;
+  const actShift=actSwing*totalVotes/100;
+  const nzfShift=nzfSwing*totalVotes/100;
+
+  p.National.votes-=labourShift+actShift+nzfShift;
+  p.Labour.votes+=labourShift;
+  p.ACT.votes+=actShift;
+  p['NZ First'].votes+=nzfShift;
+
   races.forEach((r,i)=>{if(flips.has(i)){const winnerId=partyIdLookup[r.w]||r.w;const runnerUpId=partyIdLookup[r.r]||r.r;p[winnerId].e--;p[runnerUpId].e++;}});
+
   const eligible=parties.filter(x=>p[x.id].votes>=totalVotes*.05||p[x.id].e>0),allocated=Object.fromEntries(eligible.map(x=>[x.id,0]));
   for(let seat=0;seat<120;seat++){let best=-1,winner;for(const x of eligible){const score=p[x.id].votes/(2*allocated[x.id]+1);if(score>best){best=score;winner=x.id;}}allocated[winner]++;}
   eligible.forEach(x=>{const q=p[x.id];q.entitlement=allocated[x.id];q.total=Math.max(q.e,q.entitlement);q.list=Math.max(0,q.entitlement-q.e);q.over=Math.max(0,q.e-q.entitlement);});
@@ -97,6 +141,7 @@ function calculate(){
   $('left').textContent=left;$('right').textContent=right;$('majority').textContent=majority;$('total').textContent=size+' seats';
   $('flipCount').textContent=flips.size+' changed';$('swingLabel').textContent=(swing>0?'+':'')+swing.toFixed(1)+' pp';
   $('labvote').textContent=(p.Labour.votes/totalVotes*100).toFixed(2)+'%';$('natvote').textContent=(p.National.votes/totalVotes*100).toFixed(2)+'%';
+  $('actvote').textContent=(p.ACT.votes/totalVotes*100).toFixed(2)+'%';$('nzfvote').textContent=(p['NZ First'].votes/totalVotes*100).toFixed(2)+'%';
   $('labseats').textContent=p.Labour.total;$('natseats').textContent=p.National.total;
   $('overhang').textContent=over;$('houseSize').textContent=size;$('threshold').textContent=majority;$('sum').textContent=sum;
   let title='No bloc has a majority',detail=`Left ${left} · Right ${right} · TOP ${p.TOP.total}.`;
@@ -109,11 +154,19 @@ function calculate(){
   $('parties').innerHTML=parties.map(x=>{const q=p[x.id];return `<div class="party"><div class="partyhead"><span>${x.name}</span><span>${q.total} seats</span></div><div class="bar" style="margin-top:6px"><span class="fill" style="width:${q.total/size*100}%;background:${x.c}"></span></div><div class="partyline" style="margin-top:8px"><span>Vote: <strong>${(q.votes/totalVotes*100).toFixed(2)}%</strong></span><span>Entitlement: <strong>${q.entitlement}</strong></span><span>List: <strong>${q.list}</strong></span></div></div>`;}).join('');
   $('method').textContent=`120 standard seats + ${over} overhang = ${size} total seats. ${eligible.length} parties qualify for allocation.`;
 }
+
 $('seatlist').addEventListener('change',e=>{if(!e.target.matches('[data-race]'))return;const i=+e.target.dataset.race;e.target.checked?flips.add(i):flips.delete(i);renderSeats();calculate();});
 $('swing').addEventListener('input',calculate);
+$('actSwing').addEventListener('input',()=>{syncOptionalControls();calculate();});
+$('nzfSwing').addEventListener('input',()=>{syncOptionalControls();calculate();});
+$('actToggle').addEventListener('change',()=>{syncOptionalControls();calculate();});
+$('nzfToggle').addEventListener('change',()=>{syncOptionalControls();calculate();});
 $('all').onclick=()=>{races.forEach((r,i)=>flips.add(i));renderSeats();calculate();};
 $('none').onclick=()=>{flips.clear();renderSeats();calculate();};
-$('reset').onclick=()=>{flips.clear();$('swing').value=0;renderSeats();calculate();};
-renderSeats();calculate();
+$('reset').onclick=()=>{flips.clear();$('swing').value=0;$('actToggle').checked=false;$('nzfToggle').checked=false;$('actSwing').value=0;$('nzfSwing').value=0;syncOptionalControls();renderSeats();calculate();};
+
+syncOptionalControls();
+renderSeats();
+calculate();
 })();
 </script></body></html>
