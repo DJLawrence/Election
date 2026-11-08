@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en-NZ">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NZ Election Scenario Modeller 2026</title>
+<style>
+:root{color-scheme:light dark;--bg:#10151d;--panel:#19222e;--border:#344252;--text:#edf2f7;--muted:#aab7c5;--accent:#6ca8ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:850px;margin:auto;padding:24px 16px 50px}.panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px;margin:14px 0}
+h1{font-size:25px;margin:0 0 5px}h2{font-size:17px;margin:0 0 8px}.muted{color:var(--muted);font-size:13px}
+.top{display:flex;justify-content:space-between;gap:12px;align-items:center}.tag{border:1px solid var(--border);border-radius:30px;padding:4px 9px;font-size:11px;color:var(--muted)}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin:18px 0}.metric{font-size:29px;font-weight:750}.metrics small{display:block;color:var(--muted)}
+button{background:transparent;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 11px;cursor:pointer}button:hover{border-color:var(--accent)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.bar{height:10px;background:#344252;border-radius:9px;overflow:hidden}.fill{height:100%;border-radius:9px}
+.stack{display:flex;height:20px;overflow:hidden;border-radius:5px;background:#344252}.legend{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px;font-size:12px}
+.seat{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border)}.seat:last-child{border:0}
+.switch{width:42px;height:24px;position:relative;flex-shrink:0}.switch input{opacity:0;width:0;height:0}.track{position:absolute;inset:0;border-radius:20px;background:#526171;cursor:pointer}.track:after{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;background:white;border-radius:50%;transition:.2s}.switch input:checked+.track{background:var(--accent)}.switch input:checked+.track:after{transform:translateX(18px)}
+input[type=range]{width:100%;accent-color:var(--accent)}.twocol{display:grid;grid-template-columns:1fr 1fr;gap:12px}.stat{background:#111a25;border-radius:9px;padding:12px}.stat strong{display:block;font-size:22px}.party{margin:15px 0}.partyhead{display:flex;justify-content:space-between;gap:10px;font-size:14px;font-weight:650}.details{display:flex;justify-content:space-between;gap:8px;margin-top:5px;font-size:12px;color:var(--muted)}
+@media(max-width:520px){main{padding:18px 12px 35px}.metrics .metric{font-size:25px}.legend{grid-template-columns:1fr 1fr}.twocol{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body><main>
+<header class="top"><div><div class="muted">NEW ZEALAND · 2026 GENERAL ELECTION</div><h1>Build your own Parliament</h1><div class="muted">Interactive electorate and party-vote scenarios</div></div><span class="tag">Scenario model</span></header>
+<section class="panel">
+ <div class="top"><h2>Projected Parliament</h2><button id="reset">Reset scenarios ↺</button></div>
+ <div class="metrics"><div><div class="metric" id="left">—</div><small>Left bloc</small></div><div><div class="metric" id="right">—</div><small>Right bloc</small></div><div><div class="metric" id="majority">—</div><small>Majority needed</small></div></div>
+ <div class="top muted"><span>Seat distribution</span><span id="total">—</span></div><div class="stack" id="stack"></div><div class="legend" id="legend"></div>
+ <div class="stat" style="margin-top:15px"><strong id="outcome" style="font-size:15px">—</strong><span class="muted" id="outcomeDetail"></span></div>
+ <p class="muted">Left bloc = Labour + Greens + Te Pāti Māori. Right bloc = National + ACT + NZ First. TOP is shown separately as unaligned.</p>
+</section>
+<section class="panel">
+ <h2>1. Electorate seat scenarios</h2><p class="muted">Toggle a seat to transfer it from the preliminary winner to the listed runner-up. The shortlist is based on the margins entered below.</p>
+ <div class="top"><b id="flipCount">0 changed</b></div><div class="actions"><button id="all">Flip all</button><button id="none">Clear all</button></div><div id="seatlist"></div>
+</section>
+<section class="panel">
+ <h2>2. Party-vote swing</h2><p class="muted">Transfer party-vote support directly from National to Labour. List seats are recalculated using the Sainte-Laguë method.</p>
+ <div class="top" style="margin-top:15px"><label for="swing">National → Labour</label><b id="swingLabel">0.0 pp</b></div><input id="swing" type="range" min="-5" max="8" value="0" step=".1">
+ <div class="top muted"><span>5 pp to National</span><span>8 pp to Labour</span></div>
+ <div class="twocol" style="margin-top:14px"><div class="stat"><span class="muted">Labour party vote</span><strong id="labvote">—</strong></div><div class="stat"><span class="muted">National party vote</span><strong id="natvote">—</strong></div></div>
+ <div class="details"><span>Labour seats</span><b id="labseats">—</b></div><div class="details"><span>National seats</span><b id="natseats">—</b></div>
+ <p class="muted">The swing is a direct transfer between these two parties; all other party votes remain constant.</p>
+</section>
+<section class="panel">
+ <h2>3. Parliament size and overhang</h2>
+ <div class="twocol" style="margin-top:12px"><div class="stat"><span class="muted">Base seats</span><strong>120</strong></div><div class="stat"><span class="muted">Calculated overhang</span><strong id="overhang">—</strong></div><div class="stat"><span class="muted">Total Parliament</span><strong id="houseSize">—</strong></div><div class="stat"><span class="muted">Majority threshold</span><strong id="threshold">—</strong></div></div>
+ <p class="muted">Overhang is calculated when a party wins more electorate seats than its party-vote entitlement. Those additional electorate seats increase the size of Parliament.</p>
+</section>
+<section class="panel">
+ <h2>4. Party allocation</h2><p class="muted">Sainte-Laguë party-vote entitlement, protected electorate seats, list seats and overhang.</p><div id="parties"></div><div class="top" style="border-top:1px solid var(--border);padding-top:12px"><b>Total seats allocated</b><b id="sum">—</b></div><p class="muted" id="method"></p>
+</section>
+<section class="panel"><h2>Data and limitations</h2><p class="muted">This standalone file embeds the baseline figures and electorate shortlist from the previous chat model. They have not been independently verified against the Electoral Commission's live results in this file. Check the official <a href="https://electionresults.govt.nz/" target="_blank" rel="noopener">New Zealand Electoral Commission results</a> before relying on the numbers. The party-vote allocation is recalculated mathematically; electorate runner-up transfers are scenario assumptions. This is not an official forecast.</p></section>
+</main>
+<script>
+(()=>{
+const parties=[
+ {id:'National',name:'National',votes:706680,e:42,c:'#2877ad'},
+ {id:'Labour',name:'Labour',votes:710330,e:21,c:'#d94b50'},
+ {id:'Greens',name:'Greens',votes:321902,e:2,c:'#4b9a60'},
+ {id:'ACT',name:'ACT',votes:264121,e:1,c:'#d4a52e'},
+ {id:'NZ First',name:'NZ First',votes:236630,e:0,c:'#46516a'},
+ {id:'TOP',name:'Opportunity (TOP)',votes:144298,e:0,c:'#9b8a65'},
+ {id:'TPM',name:'Te Pāti Māori',votes:13845,e:5,c:'#9562aa'}
+];
+const totalVotes=2418565;
+const races=[
+ {n:'Wairarapa',w:'National',r:'Labour',wn:'Mike Butterick',rn:'Kieran McAnulty',m:139},
+ {n:'Wellington Bays',w:'Labour',r:'Greens',wn:'Craig Renney',rn:'Julie Anne Genter',m:140},
+ {n:'Mt Roskill',w:'Labour',r:'National',wn:'Michael Wood',rn:'Carlos Cheung',m:262},
+ {n:'Hamilton East',w:'National',r:'Labour',wn:'Ryan Hamilton',rn:'Georgie Dansey',m:456},
+ {n:'Hutt South',w:'Labour',r:'National',wn:'Ginny Andersen',rn:'Chris Bishop',m:889},
+ {n:'Whangārei',w:'National',r:'Labour',wn:'Lloyd Budd',rn:'Gary Payinda',m:1092},
+ {n:'Nelson',w:'National',r:'Labour',wn:'Blair Cameron',rn:'Rachel Boyack',m:1210},
+ {n:'Takanini',w:'National',r:'Labour',wn:'Rima Nakhle',rn:'Kharag Singh',m:1487},
+ {n:'Banks Peninsula',w:'Labour',r:'National',wn:'Tracey McLellan',rn:'Vanessa Weenink',m:2261},
+ {n:'Kapiti',w:'National',r:'Labour',wn:'Tim Costley',rn:'Sophie Handford',m:2077},
+ {n:'Christchurch Central',w:'Labour',r:'National',wn:'George Hampton',rn:'Dale Stephens',m:2632},
+ {n:'Auckland Central',w:'Greens',r:'National',wn:'Chlöe Swarbrick',rn:'Candace Kinser',m:2831},
+ {n:'Maungakiekie',w:'National',r:'Labour',wn:'Greg Fleming',rn:'Priyanca Radhakrishnan',m:2952}
+];
+const $=id=>document.getElementById(id),flips=new Set();
+function renderSeats(){
+ $('seatlist').innerHTML=races.map((r,i)=>`<div class="seat"><div><b>${r.n}</b><div class="muted">${r.wn} (${r.w})${flips.has(i)?' → ': ' vs '}${r.rn} (${r.r}) · margin ${r.m.toLocaleString('en-NZ')}</div></div><label class="switch"><input type="checkbox" data-race="${i}" ${flips.has(i)?'checked':''} aria-label="Transfer ${r.n} to ${r.r}"><span class="track"></span></label></div>`).join('');
+}
+function calculate(){
+ const swing=+ $('swing').value,p=Object.fromEntries(parties.map(x=>[x.id,{...x,votes:x.votes,e:x.e,entitlement:0,list:0,over:0,total:0}]));
+ const shift=swing*totalVotes/100;p.National.votes-=shift;p.Labour.votes+=shift;
+ races.forEach((r,i)=>{if(flips.has(i)){p[r.w].e--;p[r.r].e++;}});
+ const eligible=parties.filter(x=>p[x.id].votes>=totalVotes*.05||p[x.id].e>0),allocated=Object.fromEntries(eligible.map(x=>[x.id,0]));
+ for(let seat=0;seat<120;seat++){let best=-1,winner;for(const x of eligible){const score=p[x.id].votes/(2*allocated[x.id]+1);if(score>best){best=score;winner=x.id;}}allocated[winner]++;}
+ eligible.forEach(x=>{const q=p[x.id];q.entitlement=allocated[x.id];q.total=Math.max(q.e,q.entitlement);q.list=Math.max(0,q.entitlement-q.e);q.over=Math.max(0,q.e-q.entitlement);});
+ const over=Object.values(p).reduce((a,q)=>a+q.over,0),size=120+over,majority=Math.floor(size/2)+1,sum=Object.values(p).reduce((a,q)=>a+q.total,0);
+ const left=p.Labour.total+p.Greens.total+p.TPM.total,right=p.National.total+p.ACT.total+p['NZ First'].total;
+ $('left').textContent=left;$('right').textContent=right;$('majority').textContent=majority;$('total').textContent=size+' seats';
+ $('flipCount').textContent=flips.size+' changed';$('swingLabel').textContent=(swing>0?'+':'')+swing.toFixed(1)+' pp';
+ $('labvote').textContent=(p.Labour.votes/totalVotes*100).toFixed(2)+'%';$('natvote').textContent=(p.National.votes/totalVotes*100).toFixed(2)+'%';
+ $('labseats').textContent=p.Labour.total;$('natseats').textContent=p.National.total;
+ $('overhang').textContent=over;$('houseSize').textContent=size;$('threshold').textContent=majority;$('sum').textContent=sum;
+ let title='No bloc has a majority',detail=`Left ${left} · Right ${right} · TOP ${p.TOP.total}.`;
+ if(left>=majority&&right<majority){title='Labour-led bloc has a majority';detail=`${left} seats against ${majority} needed.`;}
+ if(right>=majority&&left<majority){title='National-led bloc has a majority';detail=`${right} seats against ${majority} needed.`;}
+ if(left>=majority&&right>=majority){title='Both blocs reach a majority';detail='Mathematical outcome only; not a coalition prediction.';}
+ $('outcome').textContent=title;$('outcomeDetail').textContent=detail;
+ $('stack').innerHTML=parties.map(x=>`<div style="width:${p[x.id].total/size*100}%;background:${x.c}" title="${x.name}: ${p[x.id].total}"></div>`).join('');
+ $('legend').innerHTML=parties.map(x=>`<div class="top"><span> <i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${x.c}"></i> ${x.name}</span><b>${p[x.id].total}</b></div>`).join('');
+ $('parties').innerHTML=parties.map(x=>{const q=p[x.id];return `<div class="party"><div class="partyhead"><span>${x.name}</span><span>${q.total} seats</span></div><div class="bar" style="margin-top:7px"><div class="fill" style="width:${q.total/size*100}%;background:${x.c}"></div></div><div class="details"><span>Electorate ${q.e}</span><span>List ${q.list}</span><span>Overhang ${q.over}</span></div><div class="muted">${(q.votes/totalVotes*100).toFixed(2)}% party vote · ${q.entitlement} seat entitlement</div></div>`}).join('');
+ $('method').textContent=`120 standard seats + ${over} overhang = ${size} total seats. ${eligible.length} parties qualify for allocation.`;
+}
+$('seatlist').addEventListener('change',e=>{if(!e.target.matches('[data-race]'))return;const i=+e.target.dataset.race;e.target.checked?flips.add(i):flips.delete(i);renderSeats();calculate();});
+$('swing').addEventListener('input',calculate);
+$('all').onclick=()=>{races.forEach((r,i)=>flips.add(i));renderSeats();calculate();};
+$('none').onclick=()=>{flips.clear();renderSeats();calculate();};
+$('reset').onclick=()=>{flips.clear();$('swing').value=0;renderSeats();calculate();};
+renderSeats();calculate();
+})();
+</script></body></html>
